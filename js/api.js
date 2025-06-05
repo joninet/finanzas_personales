@@ -2,24 +2,55 @@
  * API para interactuar con Google Sheets a través de SheetDB
  */
 
-// URLs de la API de SheetDB
+// URLs de la API de SheetDB - usar la URL base original
 const SHEETDB_URL = "https://sheetdb.io/api/v1/vve96i4bamp4d";
-const SHEETDB_SETTINGS_URL = "https://sheetdb.io/api/v1/vve96i4bamp4d/sheet/ajustes";
 
 /**
- * Obtiene todos los registros de la hoja de cálculo
- * @returns {Promise<Array>} - Promesa que resuelve a un array de registros
+ * Obtiene todos los registros de la hoja de cálculo, excluyendo registros de configuración
+ * @returns {Promise<Array>} - Promesa que resuelve a un array de registros financieros
  */
 async function obtenerRegistros() {
+  console.log('Iniciando obtenerRegistros()...');
+  
   try {
+    // Obtener datos de la API
     const response = await fetch(SHEETDB_URL);
     if (!response.ok) {
+      console.error(`Error HTTP al obtener datos: ${response.status}`);
       throw new Error(`Error HTTP: ${response.status}`);
     }
+    
+    console.log('Respuesta HTTP OK, obteniendo datos JSON...');
     const data = await response.json();
-    return data;
+    
+    // Asegurarse de que los datos son un array
+    if (!Array.isArray(data)) {
+      console.error('Los datos recibidos no son un array:', data);
+      return [];
+    }
+    
+    console.log('Total de registros sin filtrar:', data.length);
+    
+    // Mostrar datos para debugging
+    if (data.length > 0) {
+      console.log('Primer registro ejemplo:', JSON.stringify(data[0]));
+    }
+    
+    // Filtrar los registros de configuración con verificación más robusta
+    const registrosFiltrados = data.filter(item => {
+      // Asegurarse de que el ítem es un objeto válido
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
+      
+      // Filtrar registros de configuración
+      return item.tipo !== 'configuracion';
+    });
+    
+    console.log('Total registros filtrados (excluyendo configuración):', registrosFiltrados.length);
+    return registrosFiltrados;
   } catch (error) {
-    console.error("Error al obtener registros:", error);
+    console.error('Error al obtener registros:', error);
     return [];
   }
 }
@@ -160,35 +191,46 @@ function obtenerUltimoDiaMes() {
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 }
 /**
+ * Función auxiliar para obtener todos los datos brutos de la hoja
+ * @returns {Promise<Array>} - Todos los registros sin filtrar
+ * @private
+ */
+async function _obtenerTodosLosRegistros() {
+  try {
+    const response = await fetch(SHEETDB_URL);
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error al obtener registros brutos:", error);
+    return [];
+  }
+}
+
+/**
  * Obtiene los medios de pago/origen desde Google Sheets
  * @returns {Promise<Array<string>>} - Promesa que resuelve a un array de medios de pago
  */
 async function obtenerMediosPago() {
   try {
-    const response = await fetch(SHEETDB_SETTINGS_URL);
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-    const data = await response.json();
+    const data = await _obtenerTodosLosRegistros();
     
-    // Buscar el registro de tipo 'medios-pago'
-    const medioPagoSettings = data.find(item => item.tipo === 'medios-pago');
+    // Buscar el registro de tipo 'configuracion' y categoria 'medios-pago'
+    const medioPagoSettings = data.find(item => item.tipo === 'configuracion' && item.categoria === 'medios-pago');
     
-    if (medioPagoSettings && medioPagoSettings.valores) {
-      // Si existe y tiene valores, dividir la cadena en un array
-      return JSON.parse(medioPagoSettings.valores);
+    if (medioPagoSettings && medioPagoSettings.concepto) {
+      try {
+        // Intentar analizar el JSON
+        return JSON.parse(medioPagoSettings.concepto);
+      } catch (parseError) {
+        console.error('Error al analizar los medios de pago:', parseError);
+        // Si hay error de parseo, retornar los valores por defecto
+        return getDefaultMediosPago();
+      }
     } else {
       // Valores por defecto si no hay configuración
-      const valoresPorDefecto = [
-        'Efectivo',
-        'Tarjeta de Crédito',
-        'Tarjeta de Débito',
-        'Transferencia',
-        'Sueldo',
-        'Freelance',
-        'Inversiones',
-        'Otros'
-      ];
+      const valoresPorDefecto = getDefaultMediosPago();
       
       // Guardar los valores por defecto
       await guardarMediosPago(valoresPorDefecto);
@@ -197,17 +239,25 @@ async function obtenerMediosPago() {
   } catch (error) {
     console.error('Error al obtener medios de pago:', error);
     // En caso de error, retornar valores por defecto
-    return [
-      'Efectivo',
-      'Tarjeta de Crédito',
-      'Tarjeta de Débito',
-      'Transferencia',
-      'Sueldo',
-      'Freelance',
-      'Inversiones',
-      'Otros'
-    ];
+    return getDefaultMediosPago();
   }
+}
+
+/**
+ * Obtiene los valores por defecto para medios de pago
+ * @returns {Array<string>} - Array de medios de pago por defecto
+ */
+function getDefaultMediosPago() {
+  return [
+    'Efectivo',
+    'Tarjeta de Crédito',
+    'Tarjeta de Débito',
+    'Transferencia',
+    'Sueldo',
+    'Freelance',
+    'Inversiones',
+    'Otros'
+  ];
 }
 
 /**
@@ -216,43 +266,97 @@ async function obtenerMediosPago() {
  * @returns {Promise<boolean>} - Promesa que resuelve a true si se guardó correctamente
  */
 async function guardarMediosPago(medios) {
+  console.log('Iniciando guardarMediosPago con:', medios);
+  
+  // Validar que medios sea un array
+  if (!Array.isArray(medios)) {
+    console.error('guardarMediosPago: El parámetro medios no es un array');
+    return false;
+  }
+  
   try {
-    // Obtener los ajustes actuales
-    const response = await fetch(SHEETDB_SETTINGS_URL);
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
+    // Obtener todos los registros para buscar la configuración
+    console.log('Obteniendo todos los registros...');
+    const data = await _obtenerTodosLosRegistros();
+    console.log('Registros obtenidos:', data.length);
     
-    const data = await response.json();
-    const medioPagoSettings = data.find(item => item.tipo === 'medios-pago');
+    const medioPagoSettings = Array.isArray(data) ? 
+      data.find(item => item && item.tipo === 'configuracion' && item.categoria === 'medios-pago') : 
+      null;
+    
+    console.log('Configuración de medios de pago encontrada:', medioPagoSettings ? 'Sí' : 'No');
     
     // Convertir el array a JSON string
     const valoresJSON = JSON.stringify(medios);
+    console.log('JSON de medios de pago:', valoresJSON);
     
-    if (medioPagoSettings) {
+    if (medioPagoSettings && medioPagoSettings.id) {
+      console.log('Actualizando registro existente con ID:', medioPagoSettings.id);
       // Actualizar el registro existente
-      await fetch(`${SHEETDB_SETTINGS_URL}/tipo/medios-pago`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: { valores: valoresJSON } })
-      });
+      try {
+        const response = await fetch(`${SHEETDB_URL}/id/${medioPagoSettings.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: { concepto: valoresJSON } })
+        });
+        
+        if (!response.ok) {
+          console.error(`Error HTTP al actualizar: ${response.status}`);
+          throw new Error(`Error al actualizar medios de pago: ${response.status}`);
+        }
+        
+        console.log('Actualización exitosa');
+      } catch (updateError) {
+        console.error('Error en la actualización:', updateError);
+        throw updateError;
+      }
     } else {
-      // Crear un nuevo registro
-      await fetch(SHEETDB_SETTINGS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          data: [{ 
-            tipo: 'medios-pago', 
-            valores: valoresJSON 
-          }] 
-        })
-      });
+      console.log('Creando nuevo registro de configuración...');
+      // Crear un nuevo registro con ID único
+      const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
+      
+      try {
+        // Crear directamente con fetch en lugar de usar guardarRegistro
+        const response = await fetch(SHEETDB_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: [{
+              id: id,
+              tipo: 'configuracion',
+              categoria: 'medios-pago',
+              concepto: valoresJSON,
+              fecha: new Date().toISOString().split('T')[0] // Fecha actual en formato YYYY-MM-DD
+            }]
+          })
+        });
+        
+        if (!response.ok) {
+          console.error(`Error HTTP al crear: ${response.status}`);
+          throw new Error(`Error al crear registro de medios de pago: ${response.status}`);
+        }
+        
+        console.log('Creación exitosa con ID:', id);
+      } catch (createError) {
+        console.error('Error en la creación:', createError);
+        throw createError;
+      }
     }
     
+    console.log('guardarMediosPago completado exitosamente');
     return true;
   } catch (error) {
-    console.error('Error al guardar medios de pago:', error);
+    console.error('Error general en guardarMediosPago:', error);
+    
+    // Intento de recuperación como último recurso
+    try {
+      console.log('Intentando método alternativo de guardar medios de pago...');
+      localStorage.setItem('medios_pago_backup', JSON.stringify(medios));
+      console.log('Respaldo guardado en localStorage');
+    } catch (backupError) {
+      console.error('No se pudo crear respaldo en localStorage:', backupError);
+    }
+    
     return false;
   }
 }
@@ -265,6 +369,7 @@ async function guardarMediosPago(medios) {
 async function agregarMedioPago(medio) {
   try {
     if (!medio || typeof medio !== 'string' || medio.trim() === '') {
+      console.error('Medio de pago inválido');
       return false;
     }
     
@@ -273,12 +378,16 @@ async function agregarMedioPago(medio) {
     
     // Verificar si ya existe
     if (medios.includes(medio)) {
+      console.log('El medio de pago ya existe, no se agregará');
       return false;
     }
     
     // Agregar y guardar
+    console.log('Agregando medio de pago:', medio);
     medios.push(medio);
-    return await guardarMediosPago(medios);
+    const resultado = await guardarMediosPago(medios);
+    console.log('Medio de pago guardado:', resultado ? 'exitoso' : 'fallido');
+    return resultado;
   } catch (error) {
     console.error('Error al agregar medio de pago:', error);
     return false;
@@ -297,12 +406,16 @@ async function eliminarMedioPago(medio) {
     const indice = medios.indexOf(medio);
     
     if (indice === -1) {
+      console.log('Medio de pago no encontrado para eliminar:', medio);
       return false;
     }
     
     // Eliminar y guardar
+    console.log('Eliminando medio de pago:', medio);
     medios.splice(indice, 1);
-    return await guardarMediosPago(medios);
+    const resultado = await guardarMediosPago(medios);
+    console.log('Medio de pago eliminado:', resultado ? 'exitoso' : 'fallido');
+    return resultado;
   } catch (error) {
     console.error('Error al eliminar medio de pago:', error);
     return false;

@@ -88,11 +88,27 @@ async function manejarSubmitIngreso(evento) {
  */
 async function cargarIngresos() {
   try {
+    console.log('Iniciando carga de ingresos...');
+    
     // Obtener todos los registros
     const registros = await window.api.obtenerRegistros();
+    console.log('Registros obtenidos:', registros ? registros.length : 0);
     
-    // Filtrar solo ingresos
-    const ingresos = registros.filter(r => r.tipo === 'ingreso');
+    // Verificar que registros sea un array
+    if (!Array.isArray(registros)) {
+      console.error('Los registros recibidos no son un array');
+      throw new Error('Formato de datos inválido');
+    }
+    
+    // Filtrar solo ingresos con validación adicional
+    const ingresos = registros.filter(r => {
+      // Validación básica para asegurarnos de que es un objeto válido
+      if (!r || typeof r !== 'object') return false;
+      
+      return r.tipo === 'ingreso';
+    });
+    
+    console.log('Ingresos filtrados:', ingresos.length);
     
     // Renderizar tabla
     renderizarTablaIngresos(ingresos);
@@ -104,6 +120,15 @@ async function cargarIngresos() {
   } catch (error) {
     console.error('Error al cargar ingresos:', error);
     window.utils.mostrarNotificacion('Error al cargar los ingresos', 'error');
+    
+    // Intentar mostrar una tabla vacía para evitar UI rota
+    try {
+      renderizarTablaIngresos([]);
+      actualizarTotalesIngresos([]);
+    } catch (uiError) {
+      console.error('Error al renderizar UI vacía:', uiError);
+    }
+    
     return [];
   }
 }

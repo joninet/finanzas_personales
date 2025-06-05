@@ -162,6 +162,8 @@ function actualizarNavegacionActiva(seccionActiva) {
   });
 }
 
+// El STORAGE_KEY está definido más abajo en el archivo
+
 /**
  * Muestra un mensaje de notificación
  * @param {string} mensaje - Mensaje a mostrar
@@ -214,56 +216,138 @@ function inicializarSidebar() {
 const STORAGE_KEY = 'finanzas_personales_medios';
 
 /**
- * Obtiene los medios de pago/origen disponibles
- * @returns {Promise<Array>} - Promesa que resuelve a la lista de medios de pago/origen
+ * Obtiene los medios de pago disponibles
+ * @returns {Promise<Array<string>>} - Promesa que resuelve a un array de medios de pago
  */
 async function obtenerMediosPago() {
-  return await window.api.obtenerMediosPago();
-}
-
-/**
- * Agrega un nuevo medio de pago a la lista si no existe.
- * @param {String} medio - El medio de pago a agregar
- * @returns {Promise<Boolean>} - Promesa que resuelve a true si se agregó correctamente, false si ya existía
- */
-async function agregarMedioPago(medio) {
-  return await window.api.agregarMedioPago(medio);
-}
-
-/**
- * Elimina un medio de pago de la lista.
- * @param {String} medio - El medio de pago a eliminar
- * @returns {Promise<Boolean>} - Promesa que resuelve a true si se eliminó correctamente, false si no existía
- */
-async function eliminarMedioPago(medio) {
-  return await window.api.eliminarMedioPago(medio);
-}
-
-/**
- * Rellena un selector con los medios de pago disponibles.
- * @param {HTMLSelectElement} selector - El elemento select a rellenar
- */
-async function rellenarSelectorMediosPago(selector) {
-  if (!selector || !selector.tagName || selector.tagName.toLowerCase() !== 'select') return;
-  
-  // Limpiar opciones existentes excepto la opción por defecto
-  while (selector.options.length > 1) {
-    selector.remove(1);
+  try {
+    // Intentar recuperar los medios de pago de localStorage
+    const mediosGuardados = localStorage.getItem(STORAGE_KEY);
+    if (mediosGuardados) {
+      const medios = JSON.parse(mediosGuardados);
+      if (Array.isArray(medios) && medios.length > 0) {
+        return medios;
+      }
+    }
+  } catch (error) {
+    console.error('Error al obtener medios de pago de localStorage:', error);
   }
   
-  // Obtener medios de pago desde la API
+  // Si no hay datos en localStorage o hay un error, usar valores predeterminados
+  const mediosDefault = [
+    'Efectivo',
+    'Tarjeta de Crédito',
+    'Tarjeta de Débito',
+    'Transferencia',
+    'Sueldo',
+    'Freelance',
+    'Inversiones',
+    'Otros'
+  ];
+  
+  // Guardar los valores predeterminados en localStorage
   try {
-    const mediosPago = await obtenerMediosPago();
-    
-    // Agregar opción por defecto si no existe
-    if (selector.options.length === 0) {
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Seleccione...';
-      selector.appendChild(defaultOption);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mediosDefault));
+  } catch (error) {
+    console.error('Error al guardar medios de pago en localStorage:', error);
+  }
+  
+  return mediosDefault;
+}
+
+/**
+ * Agrega un nuevo medio de pago/origen
+ * @param {string} medio - Medio de pago/origen a agregar
+ * @returns {Promise<boolean>} - Promesa que resuelve a true si se agregó correctamente
+ */
+async function agregarMedioPago(medio) {
+  try {
+    // Validación básica
+    if (!medio || typeof medio !== 'string' || medio.trim() === '') {
+      console.error('Medio de pago inválido');
+      return false;
     }
     
-    // Agregar los medios de pago como opciones
+    // Obtener medios actuales
+    const mediosActuales = await obtenerMediosPago();
+    
+    // Verificar si ya existe
+    if (mediosActuales.includes(medio)) {
+      return false; // Ya existe, no hacer nada
+    }
+    
+    // Agregar el nuevo medio
+    mediosActuales.push(medio);
+    
+    // Guardar en localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mediosActuales));
+    
+    return true;
+  } catch (error) {
+    console.error('Error en utils.agregarMedioPago:', error);
+    return false;
+  }
+}
+
+/**
+ * Elimina un medio de pago/origen
+ * @param {string} medio - Medio de pago/origen a eliminar
+ * @returns {Promise<boolean>} - Promesa que resuelve a true si se eliminó correctamente
+ */
+async function eliminarMedioPago(medio) {
+  try {
+    // Validación básica
+    if (!medio || typeof medio !== 'string' || medio.trim() === '') {
+      console.error('Medio de pago inválido para eliminar');
+      return false;
+    }
+    
+    // Obtener medios actuales
+    const mediosActuales = await obtenerMediosPago();
+    
+    // Verificar si existe el medio a eliminar
+    const index = mediosActuales.indexOf(medio);
+    if (index === -1) {
+      return false; // No existe, no hacer nada
+    }
+    
+    // Eliminar el medio
+    mediosActuales.splice(index, 1);
+    
+    // Guardar en localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mediosActuales));
+    
+    return true;
+  } catch (error) {
+    console.error('Error en utils.eliminarMedioPago:', error);
+    return false;
+  }
+}
+
+/**
+ * Rellena un selector con los medios de pago disponibles
+ * @param {HTMLSelectElement} selector - Elemento select a rellenar
+ */
+async function rellenarSelectorMediosPago(selector) {
+  if (!selector) {
+    console.warn('No se proporcionó un selector válido para rellenar');
+    return;
+  }
+  
+  try {
+    // Limpiar opciones actuales
+    selector.innerHTML = '';
+    
+    // Agregar opción por defecto
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Seleccione...';
+    selector.appendChild(defaultOption);
+    
+    // Obtener medios de pago (ahora provienen del array interno)
+    const mediosPago = await obtenerMediosPago();
+    
+    // Agregar opciones
     mediosPago.forEach(medio => {
       const option = document.createElement('option');
       option.value = medio;
@@ -271,12 +355,28 @@ async function rellenarSelectorMediosPago(selector) {
       selector.appendChild(option);
     });
   } catch (error) {
-    console.error('Error al cargar medios de pago:', error);
+    console.error('Error al rellenar selector de medios de pago:', error);
+    
+    // En caso de error, agregar opciones por defecto
+    selector.innerHTML = '';
+    
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Seleccione...';
+    selector.appendChild(defaultOption);
+    
+    ['Efectivo', 'Tarjeta de Crédito', 'Transferencia'].forEach(medio => {
+      const option = document.createElement('option');
+      option.value = medio;
+      option.textContent = medio;
+      selector.appendChild(option);
+    });
   }
 }
 
 // Exportar funciones
 window.utils = {
+  formatearMoneda,
   formatearFecha,
   obtenerMesActualTexto,
   calcularSuma,

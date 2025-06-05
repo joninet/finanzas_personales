@@ -84,11 +84,27 @@ async function manejarSubmitGastoDiario(evento) {
  */
 async function cargarGastosDiarios() {
   try {
+    console.log('Iniciando carga de gastos diarios...');
+    
     // Obtener todos los registros
     const registros = await window.api.obtenerRegistros();
+    console.log('Registros obtenidos:', registros ? registros.length : 0);
     
-    // Filtrar solo gastos diarios (variables)
-    const gastosDiarios = registros.filter(r => r.tipo === 'gasto' && r.categoria === 'variable');
+    // Verificar que registros sea un array
+    if (!Array.isArray(registros)) {
+      console.error('Los registros recibidos no son un array');
+      throw new Error('Formato de datos inválido');
+    }
+    
+    // Filtrar solo gastos diarios (variables) con validación adicional
+    const gastosDiarios = registros.filter(r => {
+      // Validación básica para asegurarnos de que es un objeto válido
+      if (!r || typeof r !== 'object') return false;
+      
+      return r.tipo === 'gasto' && r.categoria === 'variable';
+    });
+    
+    console.log('Gastos diarios filtrados:', gastosDiarios.length);
     
     // Renderizar tabla
     renderizarTablaGastosDiarios(gastosDiarios);
@@ -100,6 +116,15 @@ async function cargarGastosDiarios() {
   } catch (error) {
     console.error('Error al cargar gastos diarios:', error);
     window.utils.mostrarNotificacion('Error al cargar los gastos diarios', 'error');
+    
+    // Intentar mostrar una tabla vacía para evitar UI rota
+    try {
+      renderizarTablaGastosDiarios([]);
+      actualizarTotalesGastosDiarios([]);
+    } catch (uiError) {
+      console.error('Error al renderizar UI vacía:', uiError);
+    }
+    
     return [];
   }
 }
