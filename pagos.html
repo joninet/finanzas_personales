@@ -58,49 +58,58 @@
     </div>
   </div>
   <script>
-    function obtenerPagos() {
-      return JSON.parse(localStorage.getItem('pagos') || '[]');
+    const SHEETDB_URL = "https://sheetdb.io/api/v1/vve96i4bamp4d";
+
+    // Leer pagos desde Google Sheets
+    async function obtenerPagos() {
+      const res = await fetch(SHEETDB_URL);
+      const data = await res.json();
+      return data;
     }
-    function guardarPagos(pagos) {
-      localStorage.setItem('pagos', JSON.stringify(pagos));
+    // Guardar pago en Google Sheets
+    async function guardarPago(pago) {
+      await fetch(SHEETDB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: [pago] })
+      });
     }
-    function renderizarPagos() {
-      const pagos = obtenerPagos();
+    // Eliminar pago (requiere columna 'id' en tu sheet)
+    async function eliminarPagoSheet(id) {
+      await fetch(`${SHEETDB_URL}/id/${id}`, { method: "DELETE" });
+    }
+
+    // Renderizar tabla de pagos
+    async function renderizarPagos() {
+      const pagos = await obtenerPagos();
       const tbody = document.getElementById('pagosBody');
       tbody.innerHTML = '';
       pagos.forEach((pago, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="p-2">${pago.concepto}</td>
-          <td class="p-2">$${pago.monto.toLocaleString()}</td>
-          <td class="p-2">${pago.origen}</td>
-          <td class="p-2">${pago.estado}</td>
-          <td class="p-2">${pago.fecha}</td>
-          <td class="p-2"><button onclick="eliminarPago(${idx})" class="text-red-600 hover:underline">Eliminar</button></td>
+          <td class="p-2">${pago.concepto || ''}</td>
+          <td class="p-2">$${Number(pago.monto || 0).toLocaleString()}</td>
+          <td class="p-2">${pago.origen || ''}</td>
+          <td class="p-2">${pago.estado || ''}</td>
+          <td class="p-2">${pago.fecha || ''}</td>
+          <td class="p-2"><button onclick="eliminarPagoSheet('${pago.id}').then(renderizarPagos)" class="text-red-600 hover:underline">Eliminar</button></td>
         `;
         tbody.appendChild(tr);
       });
-      renderizarTotalesPagos();
+      renderizarTotalesPagos(pagos);
     }
-    function renderizarTotalesPagos() {
-      const pagos = obtenerPagos();
+    function renderizarTotalesPagos(pagos) {
       let totalPendiente = 0, totalCancelado = 0;
       pagos.forEach(p => {
-        if (p.estado === 'Pendiente') totalPendiente += Number(p.monto);
-        else totalCancelado += Number(p.monto);
+        if (p.estado === 'Pendiente') totalPendiente += Number(p.monto || 0);
+        else totalCancelado += Number(p.monto || 0);
       });
       const ul = document.getElementById('totalesPagos');
       ul.innerHTML = '';
       ul.innerHTML += `<li>Total Pendiente: <span class='text-red-600 font-bold'>$${totalPendiente.toLocaleString()}</span></li>`;
       ul.innerHTML += `<li>Total Cancelado: <span class='text-green-600 font-bold'>$${totalCancelado.toLocaleString()}</span></li>`;
     }
-    function eliminarPago(idx) {
-      const pagos = obtenerPagos();
-      pagos.splice(idx, 1);
-      guardarPagos(pagos);
-      renderizarPagos();
-    }
-    document.getElementById('pagoForm').addEventListener('submit', function(e) {
+    document.getElementById('pagoForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const pago = {
         concepto: document.getElementById('concepto').value,
@@ -109,9 +118,7 @@
         estado: document.getElementById('estado').value,
         fecha: document.getElementById('fechaPago').value
       };
-      const pagos = obtenerPagos();
-      pagos.push(pago);
-      guardarPagos(pagos);
+      await guardarPago(pago);
       this.reset();
       renderizarPagos();
     });

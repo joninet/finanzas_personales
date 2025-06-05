@@ -121,53 +121,55 @@
   </div>
 
   <script>
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('bg-white', 'text-blue-900'));
-        this.classList.add('bg-white', 'text-blue-900');
-        const tab = this.getAttribute('data-tab');
-        document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
-        document.getElementById(tab).classList.remove('hidden');
-      });
-    });
+    const SHEETDB_URL = "https://sheetdb.io/api/v1/vve96i4bamp4d";
 
-    // Utilidades para LocalStorage
-    function obtenerGastos() {
-      return JSON.parse(localStorage.getItem('gastos') || '[]');
+    // Leer gastos desde Google Sheets
+    async function obtenerGastos() {
+      const res = await fetch(SHEETDB_URL);
+      const data = await res.json();
+      return data;
     }
-    function guardarGastos(gastos) {
-      localStorage.setItem('gastos', JSON.stringify(gastos));
+    // Guardar gasto en Google Sheets
+    async function guardarGasto(gasto) {
+      await fetch(SHEETDB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: [gasto] })
+      });
+    }
+    // Eliminar gasto (requiere columna 'id' en tu sheet)
+    async function eliminarGastoSheet(id) {
+      await fetch(`${SHEETDB_URL}/id/${id}`, { method: "DELETE" });
     }
 
     // Renderizar tabla de gastos
-    function renderizarGastos() {
-      const gastos = obtenerGastos();
+    async function renderizarGastos() {
+      const gastos = await obtenerGastos();
       const tbody = document.getElementById('gastosBody');
       if (!tbody) return;
       tbody.innerHTML = '';
       gastos.forEach((gasto, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="p-2">${gasto.fecha}</td>
-          <td class="p-2">${gasto.categoria}</td>
-          <td class="p-2">${gasto.descripcion}</td>
-          <td class="p-2">$${gasto.monto.toLocaleString()}</td>
-          <td class="p-2">${gasto.medioPago}</td>
+          <td class="p-2">${gasto.fecha || ''}</td>
+          <td class="p-2">${gasto.categoria || ''}</td>
+          <td class="p-2">${gasto.descripcion || ''}</td>
+          <td class="p-2">$${Number(gasto.monto || 0).toLocaleString()}</td>
+          <td class="p-2">${gasto.medioPago || ''}</td>
           <td class="p-2">${gasto.observaciones || ''}</td>
-          <td class="p-2"><button onclick="eliminarGasto(${idx})" class="text-red-600 hover:underline">Eliminar</button></td>
+          <td class="p-2"><button onclick="eliminarGastoSheet('${gasto.id}').then(renderizarGastos).then(renderizarResumen)" class="text-red-600 hover:underline">Eliminar</button></td>
         `;
         tbody.appendChild(tr);
       });
-      renderizarTotales();
+      renderizarTotales(gastos);
     }
 
     // Renderizar totales por categoría
-    function renderizarTotales() {
-      const gastos = obtenerGastos();
+    function renderizarTotales(gastos) {
       const totales = {};
       gastos.forEach(g => {
-        totales[g.categoria] = (totales[g.categoria] || 0) + Number(g.monto);
+        if (!g.categoria) return;
+        totales[g.categoria] = (totales[g.categoria] || 0) + Number(g.monto || 0);
       });
       const ul = document.getElementById('totalesCategoria');
       if (!ul) return;
@@ -179,19 +181,10 @@
       });
     }
 
-    // Eliminar gasto
-    function eliminarGasto(idx) {
-      const gastos = obtenerGastos();
-      gastos.splice(idx, 1);
-      guardarGastos(gastos);
-      renderizarGastos();
-      renderizarResumen();
-    }
-
     // Manejar formulario
     const gastoForm = document.getElementById('gastoForm');
     if (gastoForm) {
-      gastoForm.addEventListener('submit', function(e) {
+      gastoForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const gasto = {
           fecha: document.getElementById('fecha').value,
@@ -201,9 +194,7 @@
           medioPago: document.getElementById('medioPago').value,
           observaciones: document.getElementById('observaciones').value
         };
-        const gastos = obtenerGastos();
-        gastos.push(gasto);
-        guardarGastos(gastos);
+        await guardarGasto(gasto);
         this.reset();
         renderizarGastos();
         renderizarResumen();
@@ -211,8 +202,8 @@
     }
 
     // Renderizar resumen
-    function renderizarResumen() {
-      const gastos = obtenerGastos();
+    async function renderizarResumen() {
+      const gastos = await obtenerGastos();
       let ingresos = 0;
       let gastosFijos = 0;
       let gastosVariables = 0;
@@ -222,13 +213,13 @@
       const primerDiaSemana = new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().slice(0, 10);
       const primerDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
       gastos.forEach(g => {
-        // Puedes personalizar la lógica de ingresos/gastos fijos/variables según tus categorías
-        if (g.categoria.toLowerCase().includes('ingreso')) ingresos += Number(g.monto);
-        else if (g.categoria.toLowerCase().includes('fijo')) gastosFijos += Number(g.monto);
-        else gastosVariables += Number(g.monto);
-        if (g.fecha === hoyFecha) hoy += Number(g.monto);
-        if (g.fecha >= primerDiaSemana) semana += Number(g.monto);
-        if (g.fecha >= primerDiaMes) mes += Number(g.monto);
+        if (!g.categoria) return;
+        if (g.categoria.toLowerCase().includes('ingreso')) ingresos += Number(g.monto || 0);
+        else if (g.categoria.toLowerCase().includes('fijo')) gastosFijos += Number(g.monto || 0);
+        else gastosVariables += Number(g.monto || 0);
+        if (g.fecha === hoyFecha) hoy += Number(g.monto || 0);
+        if (g.fecha >= primerDiaSemana) semana += Number(g.monto || 0);
+        if (g.fecha >= primerDiaMes) mes += Number(g.monto || 0);
       });
       document.getElementById('ingresosResumen').textContent = `$${ingresos.toLocaleString()}`;
       document.getElementById('gastosFijosResumen').textContent = `$${gastosFijos.toLocaleString()}`;
