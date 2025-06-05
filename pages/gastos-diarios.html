@@ -81,14 +81,17 @@
           
           <div class="form-group">
             <label for="medio-pago" class="form-label">Medio de Pago</label>
-            <select id="medio-pago" name="medio-pago" class="form-control" required>
-              <option value="">Seleccione...</option>
-              <option value="Efectivo">Efectivo</option>
-              <option value="Débito">Débito</option>
-              <option value="Crédito">Crédito</option>
-              <option value="Transferencia">Transferencia</option>
-              <option value="Otro">Otro</option>
-            </select>
+            <div class="flex space-x-2">
+              <select id="medio-pago" name="medio-pago" class="form-control flex-grow" required>
+                <!-- Se llenará dinámicamente -->
+              </select>
+              <button type="button" class="btn btn-secondary" id="btn-gestionar-medios">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M7.21.8C7.69.295 8 0 8 0c.109.363.234.708.371 1.038.812 1.946 2.073 3.35 3.197 4.6C12.878 7.096 14 8.345 14 10a6 6 0 0 1-12 0C2 6.668 5.58 2.517 7.21.8zm.413 1.021A31.25 31.25 0 0 0 5.794 3.99c-.726.95-1.436 2.008-1.96 3.07C3.304 8.133 3 9.138 3 10a5 5 0 0 0 10 0c0-1.201-.796-2.157-2.181-3.7l-.03-.032C9.75 5.11 8.5 3.72 7.623 1.82z"/>
+                  <path fill-rule="evenodd" d="M6.94 6.146A5.75 5.75 0 0 1 6 7.793V10a.75.75 0 0 1-1.5 0V6.043a8.018 8.018 0 0 1-1.66-1.362.75.75 0 1 1 1.06-1.06c.47.47.86 1.02 1.16 1.622a.75.75 0 0 1-.12.903z"/>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="form-group">
@@ -164,6 +167,27 @@
     </div>
   </main>
 
+  <!-- Modal para gestionar medios de pago -->
+  <div id="modal-medios-pago" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="text-lg font-bold">Gestionar Medios de Pago</h3>
+        <button type="button" class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-nuevo-medio" class="flex space-x-2 mb-4">
+          <input type="text" id="nuevo-medio" class="form-control" placeholder="Nuevo medio de pago..." required>
+          <button type="submit" class="btn btn-primary">Agregar</button>
+        </form>
+        
+        <h4 class="font-semibold mb-2">Medios de pago disponibles:</h4>
+        <ul id="lista-medios-pago" class="space-y-2">
+          <!-- Lista de medios de pago -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
@@ -174,6 +198,89 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Inicializar sidebar
       window.utils.inicializarSidebar();
+      
+      // Rellenar selector de medios de pago
+      const selectorMediosPago = document.getElementById('medio-pago');
+      if (selectorMediosPago) {
+        window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+      }
+      
+      // Configurar modal de gestión de medios de pago
+      const btnGestionarMedios = document.getElementById('btn-gestionar-medios');
+      const modalMediosPago = document.getElementById('modal-medios-pago');
+      const closeModal = modalMediosPago.querySelector('.close-modal');
+      
+      // Abrir modal
+      if (btnGestionarMedios && modalMediosPago) {
+        btnGestionarMedios.addEventListener('click', () => {
+          actualizarListaMediosPago();
+          modalMediosPago.classList.remove('hidden');
+        });
+      }
+      
+      // Cerrar modal
+      if (closeModal && modalMediosPago) {
+        closeModal.addEventListener('click', () => {
+          modalMediosPago.classList.add('hidden');
+        });
+      }
+      
+      // Manejar formulario para agregar nuevo medio
+      const formNuevoMedio = document.getElementById('form-nuevo-medio');
+      if (formNuevoMedio) {
+        formNuevoMedio.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const inputNuevoMedio = document.getElementById('nuevo-medio');
+          if (inputNuevoMedio && inputNuevoMedio.value.trim()) {
+            const nuevoMedio = inputNuevoMedio.value.trim();
+            if (window.utils.agregarMedioPago(nuevoMedio)) {
+              actualizarListaMediosPago();
+              window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+              inputNuevoMedio.value = '';
+              window.utils.mostrarNotificacion(`Medio de pago "${nuevoMedio}" agregado correctamente`, 'success');
+            } else {
+              window.utils.mostrarNotificacion(`El medio de pago "${nuevoMedio}" ya existe`, 'warning');
+            }
+          }
+        });
+      }
+      
+      // Función para actualizar la lista de medios de pago
+      function actualizarListaMediosPago() {
+        const listaMediosPago = document.getElementById('lista-medios-pago');
+        if (!listaMediosPago) return;
+        
+        // Obtener medios de pago
+        const medios = window.utils.obtenerMediosPago();
+        
+        // Limpiar lista
+        listaMediosPago.innerHTML = '';
+        
+        // Agregar cada medio como un elemento de lista
+        medios.forEach(medio => {
+          const li = document.createElement('li');
+          li.className = 'flex justify-between items-center';
+          li.innerHTML = `
+            <span>${medio}</span>
+            <button type="button" class="btn btn-danger btn-sm" data-medio="${medio}">
+              Eliminar
+            </button>
+          `;
+          listaMediosPago.appendChild(li);
+          
+          // Configurar evento para eliminar
+          const btnEliminar = li.querySelector('button');
+          btnEliminar.addEventListener('click', () => {
+            if (window.utils.eliminarMedioPago(medio)) {
+              actualizarListaMediosPago();
+              window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+              window.utils.mostrarNotificacion(`Medio de pago "${medio}" eliminado correctamente`, 'success');
+            } else {
+              window.utils.mostrarNotificacion(`Error al eliminar medio de pago "${medio}"`, 'error');
+            }
+          });
+        });
+      }
       
       // Inicializar gastos diarios
       if (window.gastosDiarios && typeof window.gastosDiarios.inicializar === 'function') {

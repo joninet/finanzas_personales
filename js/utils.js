@@ -208,6 +208,123 @@ function inicializarSidebar() {
   }
 }
 
+/**
+ * Gestiona los medios de pago/origen disponibles
+ */
+const STORAGE_KEY = 'finanzas_personales_medios';
+
+/**
+ * Obtiene los medios de pago/origen disponibles
+ * @returns {Array} - Lista de medios de pago/origen
+ */
+function obtenerMediosPago() {
+  // Valores por defecto
+  const valoresPorDefecto = [
+    'Efectivo',
+    'Tarjeta de Crédito',
+    'Tarjeta de Débito',
+    'Transferencia',
+    'Sueldo',
+    'Freelance',
+    'Inversiones',
+    'Otros'
+  ];
+  
+  // Intentar obtener del localStorage
+  try {
+    const valoresGuardados = localStorage.getItem(STORAGE_KEY);
+    if (valoresGuardados) {
+      return JSON.parse(valoresGuardados);
+    }
+    
+    // Si no hay valores guardados, guardar los valores por defecto
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(valoresPorDefecto));
+  } catch (error) {
+    console.error('Error al obtener medios de pago:', error);
+  }
+  
+  return valoresPorDefecto;
+}
+
+/**
+ * Agrega un nuevo medio de pago/origen
+ * @param {string} medio - Medio de pago/origen a agregar
+ * @returns {boolean} - Si se agregó correctamente
+ */
+function agregarMedioPago(medio) {
+  if (!medio || typeof medio !== 'string' || medio.trim() === '') {
+    return false;
+  }
+  
+  try {
+    const medios = obtenerMediosPago();
+    
+    // Verificar si ya existe
+    if (medios.includes(medio)) {
+      return false;
+    }
+    
+    // Agregar y guardar
+    medios.push(medio);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(medios));
+    return true;
+  } catch (error) {
+    console.error('Error al agregar medio de pago:', error);
+    return false;
+  }
+}
+
+/**
+ * Elimina un medio de pago/origen
+ * @param {string} medio - Medio de pago/origen a eliminar
+ * @returns {boolean} - Si se eliminó correctamente
+ */
+function eliminarMedioPago(medio) {
+  try {
+    const medios = obtenerMediosPago();
+    const indice = medios.indexOf(medio);
+    
+    if (indice === -1) {
+      return false;
+    }
+    
+    // Eliminar y guardar
+    medios.splice(indice, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(medios));
+    return true;
+  } catch (error) {
+    console.error('Error al eliminar medio de pago:', error);
+    return false;
+  }
+}
+
+/**
+ * Rellena un selector con las opciones de medios de pago/origen
+ * @param {HTMLSelectElement} selector - Elemento select a rellenar
+ */
+function rellenarSelectorMediosPago(selector) {
+  if (!selector) return;
+  
+  const medios = obtenerMediosPago();
+  
+  // Limpiar selector
+  selector.innerHTML = '';
+  
+  // Agregar opción vacía
+  const optionVacia = document.createElement('option');
+  optionVacia.value = '';
+  optionVacia.textContent = '-- Seleccionar --';
+  selector.appendChild(optionVacia);
+  
+  // Agregar opciones de medios de pago
+  medios.forEach(medio => {
+    const option = document.createElement('option');
+    option.value = medio;
+    option.textContent = medio;
+    selector.appendChild(option);
+  });
+}
+
 // Exportar funciones
 window.utils = {
   formatearMoneda,
@@ -220,5 +337,9 @@ window.utils = {
   generarPaletaColores,
   actualizarNavegacionActiva,
   mostrarNotificacion,
-  inicializarSidebar
+  inicializarSidebar,
+  obtenerMediosPago,
+  agregarMedioPago,
+  eliminarMedioPago,
+  rellenarSelectorMediosPago
 };
