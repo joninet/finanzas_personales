@@ -195,14 +195,14 @@
   
   <script>
     // Inicializar la aplicación cuando el DOM esté listo
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       // Inicializar sidebar
       window.utils.inicializarSidebar();
       
       // Rellenar selector de fuentes de ingreso (usando el mismo sistema de medios de pago)
       const selectorFuentes = document.getElementById('fuente');
       if (selectorFuentes) {
-        window.utils.rellenarSelectorMediosPago(selectorFuentes);
+        await window.utils.rellenarSelectorMediosPago(selectorFuentes);
       }
       
       // Configurar modal de gestión de fuentes
@@ -212,8 +212,8 @@
       
       // Abrir modal
       if (btnGestionarMedios && modalMediosPago) {
-        btnGestionarMedios.addEventListener('click', () => {
-          actualizarListaMediosPago();
+        btnGestionarMedios.addEventListener('click', async () => {
+          await actualizarListaMediosPago();
           modalMediosPago.classList.remove('hidden');
         });
       }
@@ -228,14 +228,15 @@
       // Manejar formulario para agregar nueva fuente
       const formNuevoMedio = document.getElementById('form-nuevo-medio');
       if (formNuevoMedio) {
-        formNuevoMedio.addEventListener('submit', (e) => {
+        formNuevoMedio.addEventListener('submit', async (e) => {
           e.preventDefault();
           const inputNuevoMedio = document.getElementById('nuevo-medio');
           if (inputNuevoMedio && inputNuevoMedio.value.trim()) {
             const nuevoMedio = inputNuevoMedio.value.trim();
-            if (window.utils.agregarMedioPago(nuevoMedio)) {
-              actualizarListaMediosPago();
-              window.utils.rellenarSelectorMediosPago(selectorFuentes);
+            const resultado = await window.utils.agregarMedioPago(nuevoMedio);
+            if (resultado) {
+              await actualizarListaMediosPago();
+              await window.utils.rellenarSelectorMediosPago(selectorFuentes);
               inputNuevoMedio.value = '';
               window.utils.mostrarNotificacion(`Fuente de ingreso "${nuevoMedio}" agregada correctamente`, 'success');
             } else {
@@ -246,12 +247,12 @@
       }
       
       // Función para actualizar la lista de fuentes
-      function actualizarListaMediosPago() {
+      async function actualizarListaMediosPago() {
         const listaMediosPago = document.getElementById('lista-medios-pago');
         if (!listaMediosPago) return;
         
         // Obtener medios de pago
-        const medios = window.utils.obtenerMediosPago();
+        const medios = await window.utils.obtenerMediosPago();
         
         // Limpiar lista
         listaMediosPago.innerHTML = '';
@@ -270,10 +271,11 @@
           
           // Configurar evento para eliminar
           const btnEliminar = li.querySelector('button');
-          btnEliminar.addEventListener('click', () => {
-            if (window.utils.eliminarMedioPago(medio)) {
-              actualizarListaMediosPago();
-              window.utils.rellenarSelectorMediosPago(selectorFuentes);
+          btnEliminar.addEventListener('click', async () => {
+            const resultado = await window.utils.eliminarMedioPago(medio);
+            if (resultado) {
+              await actualizarListaMediosPago();
+              await window.utils.rellenarSelectorMediosPago(selectorFuentes);
               window.utils.mostrarNotificacion(`Fuente de ingreso "${medio}" eliminada correctamente`, 'success');
             } else {
               window.utils.mostrarNotificacion(`Error al eliminar fuente de ingreso "${medio}"`, 'error');

@@ -195,25 +195,25 @@
   
   <script>
     // Inicializar la aplicación cuando el DOM esté listo
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       // Inicializar sidebar
       window.utils.inicializarSidebar();
       
       // Rellenar selector de medios de pago
       const selectorMediosPago = document.getElementById('medio-pago');
       if (selectorMediosPago) {
-        window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+        await window.utils.rellenarSelectorMediosPago(selectorMediosPago);
       }
       
-      // Configurar modal de gestión de medios de pago
+      // Configurar modal de gestión de medios
       const btnGestionarMedios = document.getElementById('btn-gestionar-medios');
       const modalMediosPago = document.getElementById('modal-medios-pago');
       const closeModal = modalMediosPago.querySelector('.close-modal');
       
       // Abrir modal
       if (btnGestionarMedios && modalMediosPago) {
-        btnGestionarMedios.addEventListener('click', () => {
-          actualizarListaMediosPago();
+        btnGestionarMedios.addEventListener('click', async () => {
+          await actualizarListaMediosPago();
           modalMediosPago.classList.remove('hidden');
         });
       }
@@ -228,14 +228,15 @@
       // Manejar formulario para agregar nuevo medio
       const formNuevoMedio = document.getElementById('form-nuevo-medio');
       if (formNuevoMedio) {
-        formNuevoMedio.addEventListener('submit', (e) => {
+        formNuevoMedio.addEventListener('submit', async (e) => {
           e.preventDefault();
           const inputNuevoMedio = document.getElementById('nuevo-medio');
           if (inputNuevoMedio && inputNuevoMedio.value.trim()) {
             const nuevoMedio = inputNuevoMedio.value.trim();
-            if (window.utils.agregarMedioPago(nuevoMedio)) {
-              actualizarListaMediosPago();
-              window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+            const resultado = await window.utils.agregarMedioPago(nuevoMedio);
+            if (resultado) {
+              await actualizarListaMediosPago();
+              await window.utils.rellenarSelectorMediosPago(selectorMediosPago);
               inputNuevoMedio.value = '';
               window.utils.mostrarNotificacion(`Medio de pago "${nuevoMedio}" agregado correctamente`, 'success');
             } else {
@@ -245,13 +246,13 @@
         });
       }
       
-      // Función para actualizar la lista de medios de pago
-      function actualizarListaMediosPago() {
+      // Función para actualizar la lista de medios
+      async function actualizarListaMediosPago() {
         const listaMediosPago = document.getElementById('lista-medios-pago');
         if (!listaMediosPago) return;
         
         // Obtener medios de pago
-        const medios = window.utils.obtenerMediosPago();
+        const medios = await window.utils.obtenerMediosPago();
         
         // Limpiar lista
         listaMediosPago.innerHTML = '';
@@ -270,10 +271,11 @@
           
           // Configurar evento para eliminar
           const btnEliminar = li.querySelector('button');
-          btnEliminar.addEventListener('click', () => {
-            if (window.utils.eliminarMedioPago(medio)) {
-              actualizarListaMediosPago();
-              window.utils.rellenarSelectorMediosPago(selectorMediosPago);
+          btnEliminar.addEventListener('click', async () => {
+            const resultado = await window.utils.eliminarMedioPago(medio);
+            if (resultado) {
+              await actualizarListaMediosPago();
+              await window.utils.rellenarSelectorMediosPago(selectorMediosPago);
               window.utils.mostrarNotificacion(`Medio de pago "${medio}" eliminado correctamente`, 'success');
             } else {
               window.utils.mostrarNotificacion(`Error al eliminar medio de pago "${medio}"`, 'error');
