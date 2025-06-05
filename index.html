@@ -25,23 +25,23 @@
       <h1 class="text-xl font-bold">Finanzas Personales</h1>
     </div>
     <nav class="mt-4">
-      <a href="#dashboard" class="nav-link active">
+      <a href="index.html" class="nav-link active">
         <span class="nav-icon">📊</span>
         Dashboard
       </a>
-      <a href="#gastos-mensuales" class="nav-link">
+      <a href="pages/gastos-mensuales.html" class="nav-link">
         <span class="nav-icon">📅</span>
         Gastos Mensuales
       </a>
-      <a href="#gastos-diarios" class="nav-link">
+      <a href="pages/gastos-diarios.html" class="nav-link">
         <span class="nav-icon">🛒</span>
         Gastos Diarios
       </a>
-      <a href="#ingresos" class="nav-link">
+      <a href="pages/ingresos.html" class="nav-link">
         <span class="nav-icon">💸</span>
         Ingresos
       </a>
-      <a href="#reportes" class="nav-link">
+      <a href="pages/reportes.html" class="nav-link">
         <span class="nav-icon">📈</span>
         Reportes
       </a>
@@ -118,9 +118,9 @@
       <div class="card p-4">
         <h3 class="text-xl font-semibold mb-4">Acciones Rápidas</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="#gastos-mensuales" class="btn btn-primary text-center">Registrar Gasto Mensual</a>
-          <a href="#gastos-diarios" class="btn btn-primary text-center">Registrar Gasto Diario</a>
-          <a href="#ingresos" class="btn btn-primary text-center">Registrar Ingreso</a>
+          <a href="pages/gastos-mensuales.html" class="btn btn-primary text-center">Registrar Gasto Mensual</a>
+          <a href="pages/gastos-diarios.html" class="btn btn-primary text-center">Registrar Gasto Diario</a>
+          <a href="pages/ingresos.html" class="btn btn-primary text-center">Registrar Ingreso</a>
         </div>
       </div>
     </div>
@@ -145,25 +145,9 @@
         window.dashboard.inicializar();
       }
       
-      // Manejar navegación
+      // Manejar navegación - permite que los enlaces funcionen normalmente
       document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          
-          // Obtener el ID de la sección a mostrar
-          const targetId = link.getAttribute('href').substring(1);
-          
-          // Ocultar todas las secciones
-          document.querySelectorAll('main > div').forEach(section => {
-            section.style.display = 'none';
-          });
-          
-          // Mostrar la sección seleccionada
-          const targetSection = document.getElementById(targetId);
-          if (targetSection) {
-            targetSection.style.display = 'block';
-          }
-          
+        link.addEventListener('click', () => {
           // Actualizar navegación activa
           document.querySelectorAll('.nav-link').forEach(navLink => {
             navLink.classList.remove('active');
