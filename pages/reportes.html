@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes - Finanzas Personales</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Botón para mostrar/ocultar sidebar en móvil -->
+  <button class="toggle-sidebar">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="p-4 flex items-center justify-center border-b border-blue-800">
+      <span class="text-2xl mr-2">💰</span>
+      <h1 class="text-xl font-bold">Finanzas Personales</h1>
+    </div>
+    <nav class="mt-4">
+      <a href="../index.html" class="nav-link">
+        <span class="nav-icon">📊</span>
+        Dashboard
+      </a>
+      <a href="gastos-mensuales.html" class="nav-link">
+        <span class="nav-icon">📅</span>
+        Gastos Mensuales
+      </a>
+      <a href="gastos-diarios.html" class="nav-link">
+        <span class="nav-icon">🛒</span>
+        Gastos Diarios
+      </a>
+      <a href="ingresos.html" class="nav-link">
+        <span class="nav-icon">💸</span>
+        Ingresos
+      </a>
+      <a href="reportes.html" class="nav-link active">
+        <span class="nav-icon">📈</span>
+        Reportes
+      </a>
+    </nav>
+    <div class="mt-auto p-4 text-center text-sm text-blue-300">
+      <p>© 2025 Finanzas Personales</p>
+    </div>
+  </aside>
+
+  <!-- Contenido principal -->
+  <main class="content">
+    <div class="p-6 fade-in">
+      <h2 class="text-2xl font-bold mb-6">Reportes Financieros</h2>
+      
+      <!-- Filtros de reportes -->
+      <div class="card p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Período de Análisis</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="form-group">
+            <label for="fecha-inicio" class="form-label">Desde</label>
+            <input type="date" id="fecha-inicio" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label for="fecha-fin" class="form-label">Hasta</label>
+            <input type="date" id="fecha-fin" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label for="tipo-reporte" class="form-label">Tipo de Reporte</label>
+            <select id="tipo-reporte" class="form-control">
+              <option value="general">General</option>
+              <option value="ingresos">Ingresos</option>
+              <option value="gastos">Gastos</option>
+              <option value="comparativo">Comparativo</option>
+            </select>
+          </div>
+          
+          <div class="form-group flex items-end">
+            <button id="btn-generar-reporte" class="btn btn-primary w-full">Generar Reporte</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resumen del período -->
+      <div class="card p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Resumen del Período</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 bg-blue-50 rounded-lg text-center">
+            <p class="text-blue-800 font-medium">Ingresos Totales</p>
+            <p id="reporte-ingresos-total" class="text-2xl font-bold text-green-600">$0</p>
+          </div>
+          
+          <div class="p-4 bg-blue-50 rounded-lg text-center">
+            <p class="text-blue-800 font-medium">Gastos Fijos</p>
+            <p id="reporte-gastos-fijos" class="text-2xl font-bold text-red-600">$0</p>
+          </div>
+          
+          <div class="p-4 bg-blue-50 rounded-lg text-center">
+            <p class="text-blue-800 font-medium">Gastos Variables</p>
+            <p id="reporte-gastos-variables" class="text-2xl font-bold text-red-600">$0</p>
+          </div>
+          
+          <div class="p-4 bg-blue-50 rounded-lg text-center">
+            <p class="text-blue-800 font-medium">Balance</p>
+            <p id="reporte-balance" class="text-2xl font-bold">$0</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Gráficos -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Evolución de ingresos y gastos -->
+        <div class="card p-6">
+          <h3 class="text-xl font-semibold mb-4">Evolución Mensual</h3>
+          <div class="h-80">
+            <canvas id="grafico-evolucion"></canvas>
+          </div>
+        </div>
+        
+        <!-- Distribución de gastos -->
+        <div class="card p-6">
+          <h3 class="text-xl font-semibold mb-4">Distribución de Gastos</h3>
+          <div class="h-80">
+            <canvas id="grafico-distribucion"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Análisis de tendencias -->
+      <div class="card p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Análisis de Tendencias</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Tendencia de ingresos -->
+          <div>
+            <h4 class="font-semibold mb-2">Tendencia de Ingresos</h4>
+            <div class="h-64">
+              <canvas id="grafico-tendencia-ingresos"></canvas>
+            </div>
+          </div>
+          
+          <!-- Tendencia de gastos -->
+          <div>
+            <h4 class="font-semibold mb-2">Tendencia de Gastos</h4>
+            <div class="h-64">
+              <canvas id="grafico-tendencia-gastos"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tabla de transacciones -->
+      <div class="card p-6">
+        <h3 class="text-xl font-semibold mb-4">Transacciones del Período</h3>
+        
+        <div class="overflow-x-auto">
+          <table class="finance-table w-full" id="tabla-transacciones">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Concepto</th>
+                <th>Categoría</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Las transacciones se cargarán aquí dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="../js/api.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/reportes.js"></script>
+  
+  <script>
+    // Inicializar la aplicación cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar sidebar
+      window.utils.inicializarSidebar();
+      
+      // Establecer fechas por defecto (último mes)
+      const hoy = new Date();
+      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+      
+      document.getElementById('fecha-inicio').valueAsDate = inicioMes;
+      document.getElementById('fecha-fin').valueAsDate = hoy;
+      
+      // Inicializar reportes si existe
+      if (window.reportes && typeof window.reportes.inicializar === 'function') {
+        window.reportes.inicializar();
+      }
+      
+      // Configurar generación de reportes
+      const btnGenerarReporte = document.getElementById('btn-generar-reporte');
+      if (btnGenerarReporte) {
+        btnGenerarReporte.addEventListener('click', () => {
+          const fechaInicio = document.getElementById('fecha-inicio').value;
+          const fechaFin = document.getElementById('fecha-fin').value;
+          const tipoReporte = document.getElementById('tipo-reporte').value;
+          
+          if (!fechaInicio || !fechaFin) {
+            window.utils.mostrarNotificacion('Por favor seleccione ambas fechas', 'warning');
+            return;
+          }
+          
+          if (fechaInicio > fechaFin) {
+            window.utils.mostrarNotificacion('La fecha de inicio no puede ser posterior a la fecha de fin', 'warning');
+            return;
+          }
+          
+          if (window.reportes && typeof window.reportes.generarReporte === 'function') {
+            window.reportes.generarReporte(fechaInicio, fechaFin, tipoReporte);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

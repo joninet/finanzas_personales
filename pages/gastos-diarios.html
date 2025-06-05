@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gastos Diarios - Finanzas Personales</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="bg-gray-100">
+  <!-- Botón para mostrar/ocultar sidebar en móvil -->
+  <button class="toggle-sidebar">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="p-4 flex items-center justify-center border-b border-blue-800">
+      <span class="text-2xl mr-2">💰</span>
+      <h1 class="text-xl font-bold">Finanzas Personales</h1>
+    </div>
+    <nav class="mt-4">
+      <a href="../index.html" class="nav-link">
+        <span class="nav-icon">📊</span>
+        Dashboard
+      </a>
+      <a href="gastos-mensuales.html" class="nav-link">
+        <span class="nav-icon">📅</span>
+        Gastos Mensuales
+      </a>
+      <a href="gastos-diarios.html" class="nav-link active">
+        <span class="nav-icon">🛒</span>
+        Gastos Diarios
+      </a>
+      <a href="ingresos.html" class="nav-link">
+        <span class="nav-icon">💸</span>
+        Ingresos
+      </a>
+      <a href="reportes.html" class="nav-link">
+        <span class="nav-icon">📈</span>
+        Reportes
+      </a>
+    </nav>
+    <div class="mt-auto p-4 text-center text-sm text-blue-300">
+      <p>© 2025 Finanzas Personales</p>
+    </div>
+  </aside>
+
+  <!-- Contenido principal -->
+  <main class="content">
+    <div class="p-6 fade-in">
+      <h2 class="text-2xl font-bold mb-6">Gastos Diarios</h2>
+      
+      <!-- Resumen de gastos diarios -->
+      <div class="card p-4 mb-6">
+        <div class="flex flex-col items-center">
+          <span class="text-2xl">🛒</span>
+          <span class="font-semibold text-lg mt-2">Total Gastos Diarios</span>
+          <span id="total-gastos-diarios" class="text-red-600 text-2xl font-bold mt-2">$0</span>
+        </div>
+      </div>
+      
+      <!-- Formulario para agregar gasto diario -->
+      <div class="card p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Registrar Gasto Diario</h3>
+        
+        <form id="form-gasto-diario" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-group">
+            <label for="concepto" class="form-label">Concepto</label>
+            <input type="text" id="concepto" name="concepto" class="form-control" required placeholder="Ej: Supermercado, Restaurante, etc.">
+          </div>
+          
+          <div class="form-group">
+            <label for="monto" class="form-label">Monto</label>
+            <input type="number" id="monto" name="monto" class="form-control" required min="0" step="0.01" placeholder="Monto en $">
+          </div>
+          
+          <div class="form-group">
+            <label for="medio-pago" class="form-label">Medio de Pago</label>
+            <select id="medio-pago" name="medio-pago" class="form-control" required>
+              <option value="">Seleccione...</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="Débito">Débito</option>
+              <option value="Crédito">Crédito</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="fecha" class="form-label">Fecha</label>
+            <input type="date" id="fecha" name="fecha" class="form-control" required>
+          </div>
+          
+          <div class="form-group md:col-span-2">
+            <label for="observaciones" class="form-label">Observaciones</label>
+            <textarea id="observaciones" name="observaciones" class="form-control" rows="2" placeholder="Observaciones adicionales"></textarea>
+          </div>
+          
+          <div class="col-span-1 md:col-span-2">
+            <button type="submit" class="btn btn-primary w-full">Agregar Gasto</button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="card p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Filtrar Gastos</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-group">
+            <label for="fecha-inicio" class="form-label">Desde</label>
+            <input type="date" id="fecha-inicio" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label for="fecha-fin" class="form-label">Hasta</label>
+            <input type="date" id="fecha-fin" class="form-control">
+          </div>
+          
+          <div class="form-group flex items-end">
+            <button id="btn-filtrar" class="btn btn-secondary w-full">Filtrar</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Tabla de gastos diarios -->
+        <div class="card p-6 md:col-span-2">
+          <h3 class="text-xl font-semibold mb-4">Gastos Registrados</h3>
+          
+          <div class="overflow-x-auto">
+            <table class="finance-table w-full" id="tabla-gastos-diarios">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Concepto</th>
+                  <th>Monto</th>
+                  <th>Medio de Pago</th>
+                  <th>Observaciones</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Los gastos diarios se cargarán aquí dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Totales por categoría -->
+        <div class="card p-6">
+          <h3 class="text-xl font-semibold mb-4">Totales por Categoría</h3>
+          
+          <ul id="total-por-categoria" class="space-y-2">
+            <!-- Los totales por categoría se cargarán aquí dinámicamente -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="../js/api.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/gastos-diarios.js"></script>
+  
+  <script>
+    // Inicializar la aplicación cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar sidebar
+      window.utils.inicializarSidebar();
+      
+      // Inicializar gastos diarios
+      if (window.gastosDiarios && typeof window.gastosDiarios.inicializar === 'function') {
+        window.gastosDiarios.inicializar();
+      }
+      
+      // Configurar filtro de fechas
+      const btnFiltrar = document.getElementById('btn-filtrar');
+      if (btnFiltrar) {
+        btnFiltrar.addEventListener('click', () => {
+          const fechaInicio = document.getElementById('fecha-inicio').value;
+          const fechaFin = document.getElementById('fecha-fin').value;
+          
+          if (!fechaInicio || !fechaFin) {
+            window.utils.mostrarNotificacion('Por favor seleccione ambas fechas', 'warning');
+            return;
+          }
+          
+          if (fechaInicio > fechaFin) {
+            window.utils.mostrarNotificacion('La fecha de inicio no puede ser posterior a la fecha de fin', 'warning');
+            return;
+          }
+          
+          window.gastosDiarios.filtrar(fechaInicio, fechaFin);
+        });
+      }
+      
+      // Exponer función de eliminar gasto para uso en el HTML
+      window.eliminarGastoDiario = window.gastosDiarios.eliminar;
+    });
+  </script>
+</body>
+</html>
