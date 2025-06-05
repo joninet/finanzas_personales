@@ -1,11 +1,874 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Control de Finanzas Personal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .sync-status.connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .sync-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .sync-status.loading {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .config-section {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            display: none;
+        }
+        
+        .config-section.show {
+            display: block;
+        }
+        
+        .config-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .config-row input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background: #2c3e50;
+            color: white;
+            border: 1px solid #34495e;
+        }
+        
+        .config-row input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .config-row input::placeholder {
+            color: #bdc3c7;
+        }
+        
+        .btn-config {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn-config:hover {
+            background: #2980b9;
+        }
+        
+        .btn-toggle-config {
+            background: transparent;
+            color: white;
+            border: 1px solid white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            position: absolute;
+            top: 50px;
+            right: 20px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #34495e;
+            overflow-x: auto;
+        }
+        
+        .nav-tab {
+            padding: 15px 25px;
+            color: #bdc3c7;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-tab.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom-color: #3498db;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .card .amount {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .income { color: #27ae60; }
+        .expense { color: #e74c3c; }
+        .balance { color: #3498db; }
+        .savings { color: #f39c12; }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .category {
+            margin-bottom: 20px;
+        }
+        
+        .category h4 {
+            color: #34495e;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .item:last-child {
+            border-bottom: none;
+        }
+        
+        .item input {
+            border: none;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            width: 120px;
+            text-align: right;
+            font-weight: bold;
+            border: 2px solid #ecf0f1;
+        }
+        
+        .item input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .expense-form {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 100px;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn-add {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-add:hover {
+            background: #229954;
+        }
+        
+        .btn-add:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .expenses-list {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .expenses-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            display: grid;
+            grid-template-columns: 100px 2fr 1fr 1fr 80px;
+            gap: 15px;
+            font-weight: bold;
+        }
+        
+        .expense-item {
+            display: grid;
+            grid-template-columns: 100px 2fr 1fr 1fr 80px;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            align-items: center;
+        }
+        
+        .expense-item:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .expense-item:hover {
+            background: #e8f4fd;
+        }
+        
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        
+        .btn-delete:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .daily-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .summary-item h4 {
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .summary-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .config-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .expenses-header, .expense-item {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .sync-status, .btn-toggle-config {
+                position: static;
+                margin: 5px 0;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Control de Finanzas Personal</h1>
+            <p>Gestiona tu presupuesto con sincronización en GitHub</p>
+            <div class="sync-status disconnected" id="syncStatus">🔴 Desconectado</div>
+            <button class="btn-toggle-config" onclick="toggleConfig()">⚙️ Configurar</button>
+        </div>
+        
+        <div class="config-section" id="configSection">
+            <h3>🔧 Configuración de GitHub</h3>
+            <div class="config-row">
+                <input type="text" id="githubUsername" placeholder="Tu usuario de GitHub" />
+                <input type="text" id="githubRepo" placeholder="Nombre del repositorio" />
+                <input type="password" id="githubToken" placeholder="Token de acceso personal" />
+                <button class="btn-config" onclick="saveConfig()">Guardar Config</button>
+            </div>
+            <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">
+                📋 Instrucciones: Crea un token en GitHub (Settings → Developer settings → Personal access tokens) con permisos de "repo"
+            </p>
+        </div>
+        
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showTab('overview')">📊 Resumen</div>
+            <div class="nav-tab" onclick="showTab('budget')">💼 Presupuesto</div>
+            <div class="nav-tab" onclick="showTab('expenses')">🛒 Gastos Diarios</div>
+            <div class="nav-tab" onclick="showTab('reports')">📈 Reportes</div>
+        </div>
+        
+        <!-- Tab Resumen -->
+        <div id="overview" class="tab-content active">
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>💰 Ingresos Mensuales</h3>
+                    <div class="amount income" id="totalIncome">$0</div>
+                </div>
+                
+                <div class="card">
+                    <h3>💸 Gastos Fijos</h3>
+                    <div class="amount expense" id="totalFixedExpenses">$0</div>
+                </div>
+                
+                <div class="card">
+                    <h3>🛒 Gastos Variables</h3>
+                    <div class="amount expense" id="totalDailyExpenses">$0</div>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Balance</h3>
+                    <div class="amount balance" id="totalBalance">$0</div>
+                </div>
+            </div>
+            
+            <div class="daily-summary">
+                <div class="summary-item">
+                    <h4>Hoy</h4>
+                    <div class="value" id="todayExpenses">$0</div>
+                </div>
+                <div class="summary-item">
+                    <h4>Esta Semana</h4>
+                    <div class="value" id="weekExpenses">$0</div>
+                </div>
+                <div class="summary-item">
+                    <h4>Este Mes</h4>
+                    <div class="value" id="monthExpenses">$0</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Presupuesto -->
+        <div id="budget" class="tab-content">
+            <div class="main-content">
+                <div class="section">
+                    <h2>💵 Ingresos</h2>
+                    
+                    <div class="category">
+                        <h4>Sueldos y Salarios</h4>
+                        <div class="item">
+                            <span>Sueldo Joni</span>
+                            <input type="number" id="sueldoJoni" value="1463384" oninput="saveBudgetData()">
+                        </div>
+                        <div class="item">
+                            <span>Sueldo Fher</span>
+                            <input type="number" id="sueldoFher" value="850000" oninput="saveBudgetData()">
+                        </div>
+                        <div class="item">
+                            <span>Aguinaldo</span>
+                            <input type="number" id="aguinaldo" value="450000" oninput="saveBudgetData()">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>💳 Gastos Fijos</h2>
+                    
+                    <div class="category">
+                        <h4>🏠 Vivienda</h4>
+                        <div class="item">
+                            <span>Alquiler</span>
+                            <input type="number" id="alquiler" value="145000" oninput="saveBudgetData()">
+                        </div>
+                        <div class="item">
+                            <span>Servicios</span>
+                            <input type="number" id="servicios" value="45200" oninput="saveBudgetData()">
+                        </div>
+                    </div>
+                    
+                    <div class="category">
+                        <h4>💳 Tarjetas/Créditos</h4>
+                        <div class="item">
+                            <span>Tarjeta Hipotecario</span>
+                            <input type="number" id="tarjetaHipo" value="1567252" oninput="saveBudgetData()">
+                        </div>
+                        <div class="item">
+                            <span>Crédito Hipotecario</span>
+                            <input type="number" id="creditoHipo" value="297165" oninput="saveBudgetData()">
+                        </div>
+                        <div class="item">
+                            <span>Seguros</span>
+                            <input type="number" id="seguros" value="27740" oninput="saveBudgetData()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Gastos Diarios -->
+        <div id="expenses" class="tab-content">
+            <div class="expense-form">
+                <h2>➕ Registrar Nuevo Gasto</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <input type="text" id="expenseDescription" placeholder="Ej: Almuerzo, Combustible, Supermercado">
+                    </div>
+                    <div class="form-group">
+                        <label>Monto</label>
+                        <input type="number" id="expenseAmount" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="expenseCategory">
+                            <option value="Alimentación">🍽️ Alimentación</option>
+                            <option value="Transporte">🚗 Transporte</option>
+                            <option value="Entretenimiento">🎬 Entretenimiento</option>
+                            <option value="Salud">🏥 Salud</option>
+                            <option value="Ropa">👕 Ropa</option>
+                            <option value="Hogar">🏠 Hogar</option>
+                            <option value="Educación">📚 Educación</option>
+                            <option value="Otros">📦 Otros</option>
+                        </select>
+                    </div>
+                    <button class="btn-add" id="addExpenseBtn" onclick="addExpense()">Agregar</button>
+                </div>
+            </div>
+            
+            <div class="expenses-list">
+                <div class="expenses-header">
+                    <div>Fecha</div>
+                    <div>Descripción</div>
+                    <div>Categoría</div>
+                    <div>Monto</div>
+                    <div>Acción</div>
+                </div>
+                <div id="expensesList">
+                    <div class="loading">Cargando gastos...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Reportes -->
+        <div id="reports" class="tab-content">
+            <div class="section">
+                <h2>📊 Resumen por Categorías</h2>
+                <div id="categoryReport"></div>
+            </div>
+        </div>
+    </div>
     
-</body>
-</html>
+    <script>
+        // Variables globales
+        let appData = {
+            expenses: [],
+            budget: {},
+            lastSync: null
+        };
+        
+        let githubConfig = {
+            username: '',
+            repo: '',
+            token: '',
+            filename: 'finanzas-data.json'
+        };
+        
+        // Cargar configuración guardada
+        function loadConfig() {
+            const saved = localStorage.getItem('githubConfig');
+            if (saved) {
+                githubConfig = {...githubConfig, ...JSON.parse(saved)};
+                document.getElementById('githubUsername').value = githubConfig.username;
+                document.getElementById('githubRepo').value = githubConfig.repo;
+                document.getElementById('githubToken').value = githubConfig.token;
+                
+                if (githubConfig.username && githubConfig.repo && githubConfig.token) {
+                    loadDataFromGitHub();
+                }
+            }
+        }
+        
+        // Guardar configuración
+        function saveConfig() {
+            githubConfig.username = document.getElementById('githubUsername').value;
+            githubConfig.repo = document.getElementById('githubRepo').value;
+            githubConfig.token = document.getElementById('githubToken').value;
+            
+            if (!githubConfig.username || !githubConfig.repo || !githubConfig.token) {
+                alert('Por favor completa todos los campos de configuración');
+                return;
+            }
+            
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            document.getElementById('configSection').classList.remove('show');
+            
+            // Intentar cargar datos
+            loadDataFromGitHub();
+        }
+        
+        // Alternar configuración
+        function toggleConfig() {
+            document.getElementById('configSection').classList.toggle('show');
+        }
+        
+        // Actualizar estado de sincronización
+        function updateSyncStatus(status, message) {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.className = `sync-status ${status}`;
+            statusEl.textContent = message;
+        }
+        
+        // Cargar datos desde GitHub
+        async function loadDataFromGitHub() {
+            updateSyncStatus('loading', '🟡 Cargando...');
+            
+            try {
+                const url = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.filename}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = JSON.parse(atob(data.content));
+                    appData = {...appData, ...content};
+                    appData.sha = data.sha; // Necesario para updates
+                    
+                    loadBudgetData();
+                    loadExpenses();
+                    calculateTotals();
+                    
+                    updateSyncStatus('connected', '🟢 Sincronizado');
+                } else if (response.status === 404) {
+                    // Archivo no existe, crear uno nuevo
+                    await saveDataToGitHub();
+                } else {
+                    throw new Error(`Error ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading from GitHub:', error);
+                updateSyncStatus('disconnected', '🔴 Error de conexión');
+                
+                // Cargar datos locales como fallback
+                const localData = localStorage.getItem('finanzasData');
+                if (localData) {
+                    appData = JSON.parse(localData);
+                    loadBudgetData();
+                    loadExpenses();
+                    calculateTotals();
+                }
+            }
+        }
+        
+        // Guardar datos en GitHub
+        async function saveDataToGitHub() {
+            updateSyncStatus('loading', '🟡 Guardando...');
+            
+            try {
+                const content = btoa(JSON.stringify(appData, null, 2));
+                const url = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.filename}`;
+                
+                const payload = {
+                    message: `Actualizar finanzas - ${new Date().toLocaleString()}`,
+                    content: content
+                };
+                
+                if (appData.sha) {
+                    payload.sha = appData.sha;
+                }
+                
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    appData.sha = result.content.sha;
+                    appData.lastSync = new Date().toISOString();
+                    
+                    // Guardar copia local
+                    localStorage.setItem('finanzasData', JSON.stringify(appData));
+                    
+                    updateSyncStatus('connected', '🟢 Guardado');
+                    
+                    // Mostrar mensaje de éxito temporal
+                    showSuccessMessage('Datos guardados correctamente');
+                } else {
+                    throw new Error(`Error ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error saving to GitHub:', error);
+                updateSyncStatus('disconnected', '🔴 Error al guardar');
+                
+                // Guardar solo localmente
+                localStorage.setItem('finanzasData', JSON.stringify(appData));
+                alert('Error al sincronizar con GitHub. Datos guardados localmente.');
+            }
+        }
+        
+        // Mostrar mensaje de éxito
+        function showSuccessMessage(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(successDiv, container.firstChild);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+        
+        // Cargar datos del presupuesto
+        function loadBudgetData() {
+            if (appData.budget) {
+                Object.keys(appData.budget).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = appData.budget[key] || 0;
+                    }
+                });
+            }
+        }
+        
+        // Guardar datos del presupuesto
+        function saveBudgetData() {
+            const budgetFields = ['sueldoJoni', 'sueldoFher', 'aguinaldo', 'alquiler', 'servicios', 'tarjetaHipo', 'creditoHipo', 'seguros'];
+            
+            appData.budget = {};
+            budgetFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    appData.budget[field] = parseFloat(element.value) || 0;
+                }
+            });
+            
+            calculateTotals();
+            
+            // Guardar en GitHub con debounce
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = setTimeout(() => {
+                saveDataToGitHub();
+            }, 2000);
+        }
+        
+        // Función para mostrar tabs
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'expenses') {
+                loadExpenses();
+            } else if (tabName === 'reports') {
+                generateCategoryReport();
+            }
+            
+            calculateTotals();
+        }
+        
+        // Función para calcular totales
+        function calculateTotals() {
+            // Ingresos
+            const budget = appData.budget || {};
+            const totalIncome = (budget.sueldoJoni || 0) + (budget.sueldoFher || 0) + (budget.aguinaldo || 0);
+            
+            // Gastos fijos
+            const totalFixedExpenses = (budget.alquiler || 0) + (budget.servicios || 0) + (budget.tarjetaHipo || 0) + (budget.creditoHipo || 0) + (budget.seguros || 0);
+            
+            // Gastos variables
+            const totalDailyExpenses = appData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            
+            const balance = totalIncome - totalFixedExpenses - totalDailyExpenses;
+            
+            // Actualizar displays
+            document.getElementById('totalIncome').textContent = '$' + totalIncome.toLocaleString();
+            document.getElementById('totalFixedExpenses').textContent = '$' + totalFixedExpenses.toLocaleString();
+            document.getElementById('totalDailyExpenses').textContent = '$' + totalDailyExpenses.toLocaleString();
+            document.getElementById('totalBalance').textContent = '$' + balance.toLocaleString();
+            
+            // Calcular gastos por período
+            const today = new Date().toDateString();
+            const thisWeek
