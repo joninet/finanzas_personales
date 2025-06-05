@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagos del Mes</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-blue-900 text-white px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between shadow">
+    <div class="flex items-center mb-2 md:mb-0">
+      <span class="text-2xl mr-2">💰</span>
+      <span class="font-bold text-xl">Control de Finanzas Personal</span>
+    </div>
+    <div class="flex space-x-2">
+      <a href="index.html" class="px-4 py-2 rounded hover:bg-blue-800">Resumen</a>
+      <a href="pagos.html" class="px-4 py-2 rounded bg-white text-blue-900 font-semibold">Pagos del Mes</a>
+      <a href="presupuesto.html" class="px-4 py-2 rounded hover:bg-blue-800">Presupuesto</a>
+      <a href="gastos.html" class="px-4 py-2 rounded hover:bg-blue-800">Gastos Diarios</a>
+      <a href="reportes.html" class="px-4 py-2 rounded hover:bg-blue-800">Reportes</a>
+    </div>
+  </nav>
+  <div class="max-w-5xl mx-auto py-8 px-2">
+    <h2 class="text-2xl font-bold mb-6 text-blue-700">Pagos del Mes</h2>
+    <div class="bg-white p-6 rounded-lg shadow mb-8">
+      <form id="pagoForm" class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+        <input type="text" id="concepto" placeholder="Concepto" required class="border p-2 rounded" />
+        <input type="number" id="montoPago" placeholder="Monto" required class="border p-2 rounded" />
+        <input type="text" id="origen" placeholder="Origen (Sueldo/Tarjeta/etc)" required class="border p-2 rounded" />
+        <select id="estado" class="border p-2 rounded" required>
+          <option value="Pendiente">Pendiente</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+        <input type="date" id="fechaPago" required class="border p-2 rounded" />
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Agregar Pago</button>
+      </form>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-gray-700" id="tablaPagos">
+          <thead>
+            <tr class="bg-blue-100">
+              <th class="p-2">Concepto</th>
+              <th class="p-2">Monto</th>
+              <th class="p-2">Origen</th>
+              <th class="p-2">Estado</th>
+              <th class="p-2">Fecha</th>
+              <th class="p-2">Eliminar</th>
+            </tr>
+          </thead>
+          <tbody id="pagosBody">
+            <!-- Pagos se insertan aquí -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4">Totales</h3>
+      <ul id="totalesPagos" class="space-y-2"></ul>
+    </div>
+  </div>
+  <script>
+    function obtenerPagos() {
+      return JSON.parse(localStorage.getItem('pagos') || '[]');
+    }
+    function guardarPagos(pagos) {
+      localStorage.setItem('pagos', JSON.stringify(pagos));
+    }
+    function renderizarPagos() {
+      const pagos = obtenerPagos();
+      const tbody = document.getElementById('pagosBody');
+      tbody.innerHTML = '';
+      pagos.forEach((pago, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${pago.concepto}</td>
+          <td class="p-2">$${pago.monto.toLocaleString()}</td>
+          <td class="p-2">${pago.origen}</td>
+          <td class="p-2">${pago.estado}</td>
+          <td class="p-2">${pago.fecha}</td>
+          <td class="p-2"><button onclick="eliminarPago(${idx})" class="text-red-600 hover:underline">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      renderizarTotalesPagos();
+    }
+    function renderizarTotalesPagos() {
+      const pagos = obtenerPagos();
+      let totalPendiente = 0, totalCancelado = 0;
+      pagos.forEach(p => {
+        if (p.estado === 'Pendiente') totalPendiente += Number(p.monto);
+        else totalCancelado += Number(p.monto);
+      });
+      const ul = document.getElementById('totalesPagos');
+      ul.innerHTML = '';
+      ul.innerHTML += `<li>Total Pendiente: <span class='text-red-600 font-bold'>$${totalPendiente.toLocaleString()}</span></li>`;
+      ul.innerHTML += `<li>Total Cancelado: <span class='text-green-600 font-bold'>$${totalCancelado.toLocaleString()}</span></li>`;
+    }
+    function eliminarPago(idx) {
+      const pagos = obtenerPagos();
+      pagos.splice(idx, 1);
+      guardarPagos(pagos);
+      renderizarPagos();
+    }
+    document.getElementById('pagoForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const pago = {
+        concepto: document.getElementById('concepto').value,
+        monto: Number(document.getElementById('montoPago').value),
+        origen: document.getElementById('origen').value,
+        estado: document.getElementById('estado').value,
+        fecha: document.getElementById('fechaPago').value
+      };
+      const pagos = obtenerPagos();
+      pagos.push(pago);
+      guardarPagos(pagos);
+      this.reset();
+      renderizarPagos();
+    });
+    renderizarPagos();
+  </script>
+</body>
+</html>
